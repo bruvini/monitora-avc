@@ -64,9 +64,10 @@ export function useAtualizarExames() {
   return useMutation({
     mutationFn: ({ pacienteId, exameId, dataRealizacao }: { pacienteId: string; exameId: string; dataRealizacao: Date }) => 
       api.atualizarExames(pacienteId, exameId, dataRealizacao),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['pacientes'] });
-      queryClient.invalidateQueries({ queryKey: ['exames'] });
+      queryClient.invalidateQueries({ queryKey: ['exames', variables.pacienteId] });
+      queryClient.invalidateQueries({ queryKey: ['logs', variables.pacienteId] });
       queryClient.invalidateQueries({ queryKey: ['metricas'] });
       toast.success('Exame atualizado com sucesso');
     },
@@ -148,9 +149,10 @@ export function useGerenciarAgendamento() {
   return useMutation({
     mutationFn: ({ pacienteId, dados }: { pacienteId: string; dados: any }) => 
       api.gerenciarAgendamento(pacienteId, dados),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['pacientes'] });
-      queryClient.invalidateQueries({ queryKey: ['agendamento'] });
+      queryClient.invalidateQueries({ queryKey: ['agendamento', variables.pacienteId] });
+      queryClient.invalidateQueries({ queryKey: ['logs', variables.pacienteId] });
       queryClient.invalidateQueries({ queryKey: ['metricas'] });
       toast.success('Agendamento atualizado com sucesso');
     },
@@ -166,8 +168,10 @@ export function useInformarDesfecho() {
   return useMutation({
     mutationFn: ({ pacienteId, dados }: { pacienteId: string; dados: any }) => 
       api.informarDesfecho(pacienteId, dados),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['pacientes'] });
+      queryClient.invalidateQueries({ queryKey: ['agendamento', variables.pacienteId] });
+      queryClient.invalidateQueries({ queryKey: ['logs', variables.pacienteId] });
       queryClient.invalidateQueries({ queryKey: ['metricas'] });
       toast.success('Desfecho registrado com sucesso');
     },
@@ -183,7 +187,9 @@ export function useRegistrarContato() {
   return useMutation({
     mutationFn: ({ pacienteId, dados }: { pacienteId: string; dados: any }) => 
       api.registrarContato(pacienteId, dados),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['pacientes'] });
+      queryClient.invalidateQueries({ queryKey: ['logs', variables.pacienteId] });
       queryClient.invalidateQueries({ queryKey: ['metricas'] });
       toast.success('Contato registrado com sucesso');
     },

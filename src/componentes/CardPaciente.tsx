@@ -38,6 +38,9 @@ export function CardPaciente({
     status === "aguarda_agendamento" && 
     agendamento?.status === "proposed";
 
+  const temPreAgendamento = status === "aguarda_agendamento" && agendamento?.status === "proposed";
+  const textoAcao = temPreAgendamento ? "Revisar agenda" : obterTextoAcao(status);
+
   return (
     <Card className="shadow-card hover:shadow-card-hover transition-smooth">
       <CardHeader className="pb-3">
@@ -89,9 +92,9 @@ export function CardPaciente({
           size="sm"
           onClick={aoClicarAcao}
           className="flex-1 transition-base"
-          aria-label={`${obterTextoAcao(status)} paciente ${nome}`}
+          aria-label={`${textoAcao} paciente ${nome}`}
         >
-          {obterTextoAcao(status)}
+          {textoAcao}
         </Button>
       </CardFooter>
     </Card>
