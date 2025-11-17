@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCriarPaciente } from "@/hooks/usePacientes";
 import { toast } from "sonner";
+import { formatarNomePaciente } from "@/utilidades/formatadores";
 
 const esquemaCadastro = z.object({
   nome: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
@@ -30,20 +31,6 @@ const esquemaCadastro = z.object({
   exames: z.array(z.string()).min(1, "Selecione pelo menos um exame"),
   examesLaboratoriais: z.string().optional(),
   outrosExames: z.string().optional(),
-}).refine((data) => {
-  // Validar que "Outros" exames contém vírgula se houver múltiplos (com base em espaços)
-  if (data.outrosExames && data.outrosExames.trim().length > 0) {
-    const temEspaco = data.outrosExames.includes(' ');
-    const temVirgula = data.outrosExames.includes(',');
-    // Se tem espaço mas não tem vírgula, provavelmente são múltiplos exames sem separação adequada
-    if (temEspaco && !temVirgula) {
-      return false;
-    }
-  }
-  return true;
-}, {
-  message: "Separe múltiplos exames com vírgula (ex: USG, Quimio)",
-  path: ["outrosExames"],
 });
 
 type FormularioCadastro = z.infer<typeof esquemaCadastro>;
@@ -108,12 +95,17 @@ export function ModalCadastrarPaciente({ aberto, aoFechar }: ModalCadastrarPacie
     });
 
     const payload = {
-      nome: dados.nome,
+      nome: formatarNomePaciente(dados.nome), // Aplicar normalização
       dataNascimento: dados.dataNascimento,
       genero: dados.genero,
       statusInternacao: dados.statusInternacao === "internado" ? "in-progress" : "finished",
       dataAlta: dados.dataAlta,
       exames: examesProcessados,
+      _extension_Monitoramento: {
+        dataCadastroSistema: new Date(), // Garantir que é Date
+        statusMonitoramento: "aguarda_analise",
+        historicoStatus: [{ status: "aguarda_analise", timestamp: new Date() }]
+      }
     };
 
     criarPaciente(payload, {
