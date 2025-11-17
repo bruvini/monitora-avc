@@ -62,6 +62,12 @@ export function processarExamesOutros(textoInput: string): string[] {
     return [];
   }
   
+  // Se não tiver vírgula, retorna o item único em um array
+  if (!textoInput.includes(',')) {
+    return [textoInput.trim()];
+  }
+  
+  // Se tiver vírgula, divide e processa
   return textoInput
     .split(',')
     .map(exame => exame.trim())

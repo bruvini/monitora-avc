@@ -12,13 +12,15 @@ interface CardPacienteProps {
   agendamento?: Agendamento;
   aoClicarContato: () => void;
   aoClicarAcao: () => void;
+  aoClicarNome?: () => void;
 }
 
 export function CardPaciente({ 
   paciente, 
   agendamento,
   aoClicarContato, 
-  aoClicarAcao 
+  aoClicarAcao,
+  aoClicarNome
 }: CardPacienteProps) {
   const nome = paciente.name[0]?.text || "Nome não informado";
   const idade = calcularIdade(paciente.birthDate);
@@ -39,9 +41,13 @@ export function CardPaciente({
   return (
     <Card className="shadow-card hover:shadow-card-hover transition-smooth">
       <CardHeader className="pb-3">
-        <h3 className="text-lg font-semibold text-card-foreground leading-tight">
+        <Button
+          variant="link"
+          className="text-lg font-semibold text-card-foreground leading-tight p-0 h-auto hover:text-primary"
+          onClick={aoClicarNome}
+        >
           {nome}
-        </h3>
+        </Button>
       </CardHeader>
       
       <CardContent className="pb-3 space-y-2">
