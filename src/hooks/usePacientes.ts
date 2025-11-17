@@ -62,17 +62,75 @@ export function useAtualizarExames() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ pacienteId, examesChecados }: { pacienteId: string; examesChecados: any[] }) => 
-      api.atualizarExames(pacienteId, examesChecados),
+    mutationFn: ({ pacienteId, exameId, dataRealizacao }: { pacienteId: string; exameId: string; dataRealizacao: Date }) => 
+      api.atualizarExames(pacienteId, exameId, dataRealizacao),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pacientes'] });
       queryClient.invalidateQueries({ queryKey: ['exames'] });
       queryClient.invalidateQueries({ queryKey: ['metricas'] });
-      toast.success('Exames atualizados com sucesso');
+      toast.success('Exame atualizado com sucesso');
     },
-    onError: () => {
-      toast.error('Erro ao atualizar exames');
+    onError: (error: any) => {
+      toast.error(error.message || 'Erro ao atualizar exame');
     },
+  });
+}
+
+export function useRegistrarObito() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ pacienteId, dataObito }: { pacienteId: string; dataObito: Date }) => 
+      api.registrarObito(pacienteId, dataObito),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pacientes'] });
+      queryClient.invalidateQueries({ queryKey: ['metricas'] });
+      toast.success('Óbito registrado com sucesso');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Erro ao registrar óbito');
+    },
+  });
+}
+
+export function useRegistrarReinternacao() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ pacienteId, dataReinternacao, motivo }: { pacienteId: string; dataReinternacao: Date; motivo: string }) => 
+      api.registrarReinternacao(pacienteId, dataReinternacao, motivo),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pacientes'] });
+      queryClient.invalidateQueries({ queryKey: ['metricas'] });
+      toast.success('Reinternação registrada com sucesso');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Erro ao registrar reinternação');
+    },
+  });
+}
+
+export function useExcluirPaciente() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (pacienteId: string) => api.excluirPaciente(pacienteId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pacientes'] });
+      queryClient.invalidateQueries({ queryKey: ['metricas'] });
+      toast.success('Paciente excluído com sucesso');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Erro ao excluir paciente');
+    },
+  });
+}
+
+export function useLogs(pacienteId: string | null) {
+  return useQuery({
+    queryKey: ['logs', pacienteId],
+    queryFn: () => api.buscarLogs(pacienteId!),
+    enabled: !!pacienteId,
   });
 }
 

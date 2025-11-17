@@ -7,6 +7,10 @@ import { PainelKanban } from "@/componentes/PainelKanban";
 import { ModalRegistrarContato } from "@/componentes/modais/ModalRegistrarContato";
 import { ModalCadastrarPaciente } from "@/componentes/modais/ModalCadastrarPaciente";
 import { ModalAnalisarPaciente } from "@/componentes/modais/ModalAnalisarPaciente";
+import { ModalChecarExames } from "@/componentes/modais/ModalChecarExames";
+import { ModalGerenciarConsulta } from "@/componentes/modais/ModalGerenciarConsulta";
+import { ModalInformarDesfecho } from "@/componentes/modais/ModalInformarDesfecho";
+import { ModalDetalhesPaciente } from "@/componentes/modais/ModalDetalhesPaciente";
 import { Paciente } from "@/tipos/paciente";
 import { usePacientes, useMetricas } from "@/hooks/usePacientes";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,6 +22,10 @@ const Index = () => {
   const [modalContatoAberto, setModalContatoAberto] = useState(false);
   const [modalCadastroAberto, setModalCadastroAberto] = useState(false);
   const [modalAnaliseAberto, setModalAnaliseAberto] = useState(false);
+  const [modalExamesAberto, setModalExamesAberto] = useState(false);
+  const [modalConsultaAberto, setModalConsultaAberto] = useState(false);
+  const [modalDesfechoAberto, setModalDesfechoAberto] = useState(false);
+  const [modalDetalhesAberto, setModalDetalhesAberto] = useState(false);
   const [pacienteSelecionado, setPacienteSelecionado] = useState<Paciente | null>(null);
 
   const { data: pacientes = [], isLoading: carregandoPacientes } = usePacientes({
@@ -65,13 +73,23 @@ const Index = () => {
     setModalContatoAberto(true);
   };
 
+  const handleDetalhes = (paciente: Paciente) => {
+    setPacienteSelecionado(paciente);
+    setModalDetalhesAberto(true);
+  };
+
   const handleAcao = (paciente: Paciente) => {
     const status = paciente._extension_Monitoramento.statusMonitoramento;
+    setPacienteSelecionado(paciente);
+    
     if (status === "aguarda_analise") {
-      setPacienteSelecionado(paciente);
       setModalAnaliseAberto(true);
-    } else {
-      toast.info(`Modal de ${status} será implementado em breve`);
+    } else if (status === "aguarda_exames") {
+      setModalExamesAberto(true);
+    } else if (status === "aguarda_agendamento") {
+      setModalConsultaAberto(true);
+    } else if (status === "aguarda_desfecho") {
+      setModalDesfechoAberto(true);
     }
   };
 
@@ -155,6 +173,7 @@ const Index = () => {
               colunas={colunas}
               aoClicarContato={handleContato}
               aoClicarAcao={handleAcao}
+              aoClicarNome={handleDetalhes}
             />
           )}
         </section>
@@ -174,6 +193,30 @@ const Index = () => {
       <ModalAnalisarPaciente
         aberto={modalAnaliseAberto}
         aoFechar={() => setModalAnaliseAberto(false)}
+        paciente={pacienteSelecionado}
+      />
+
+      <ModalChecarExames
+        aberto={modalExamesAberto}
+        aoFechar={() => setModalExamesAberto(false)}
+        paciente={pacienteSelecionado}
+      />
+
+      <ModalGerenciarConsulta
+        aberto={modalConsultaAberto}
+        aoFechar={() => setModalConsultaAberto(false)}
+        paciente={pacienteSelecionado}
+      />
+
+      <ModalInformarDesfecho
+        aberto={modalDesfechoAberto}
+        aoFechar={() => setModalDesfechoAberto(false)}
+        paciente={pacienteSelecionado}
+      />
+
+      <ModalDetalhesPaciente
+        aberto={modalDetalhesAberto}
+        aoFechar={() => setModalDetalhesAberto(false)}
         paciente={pacienteSelecionado}
       />
     </div>
