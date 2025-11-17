@@ -5,6 +5,7 @@ import { Metricas } from "@/componentes/Metricas";
 import { Filtros } from "@/componentes/Filtros";
 import { PainelKanban } from "@/componentes/PainelKanban";
 import { ModalRegistrarContato } from "@/componentes/modais/ModalRegistrarContato";
+import { ModalCadastrarPaciente } from "@/componentes/modais/ModalCadastrarPaciente";
 import { Paciente } from "@/tipos/paciente";
 import { usePacientes, useMetricas } from "@/hooks/usePacientes";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,6 +15,7 @@ const Index = () => {
   const [nomeFiltro, setNomeFiltro] = useState("");
   const [atendimentoFiltro, setAtendimentoFiltro] = useState("");
   const [modalContatoAberto, setModalContatoAberto] = useState(false);
+  const [modalCadastroAberto, setModalCadastroAberto] = useState(false);
   const [pacienteSelecionado, setPacienteSelecionado] = useState<Paciente | null>(null);
 
   const { data: pacientes = [], isLoading: carregandoPacientes } = usePacientes({
@@ -49,7 +51,7 @@ const Index = () => {
   };
 
   const handleCadastrarPaciente = () => {
-    toast.info("Modal de cadastro será implementado");
+    setModalCadastroAberto(true);
   };
 
   const handleRelatorioAgendamento = () => {
@@ -155,6 +157,11 @@ const Index = () => {
         aberto={modalContatoAberto}
         aoFechar={() => setModalContatoAberto(false)}
         paciente={pacienteSelecionado}
+      />
+
+      <ModalCadastrarPaciente
+        aberto={modalCadastroAberto}
+        aoFechar={() => setModalCadastroAberto(false)}
       />
     </div>
   );
