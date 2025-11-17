@@ -185,10 +185,17 @@ export const api = {
       const examesRef = collection(db, COLECAO_PACIENTES, pacienteId, "exames");
       const snapshot = await getDocs(examesRef);
       
-      const exames = snapshot.docs.map(docSnap => ({
-        id: docSnap.id,
-        ...converterTimestamps(docSnap.data())
-      }));
+      const exames = snapshot.docs.map(docSnap => {
+        const raw = converterTimestamps(docSnap.data());
+        const nomeNormalizado = typeof raw.nomeExame === 'string'
+          ? raw.nomeExame
+          : (raw?.nomeExame?.detalhes ?? raw?.nomeExame?.tipo ?? String(raw.nomeExame || 'Exame'));
+        return {
+          id: docSnap.id,
+          ...raw,
+          nomeExame: nomeNormalizado,
+        };
+      });
       
       return exames;
     } catch (error: any) {
