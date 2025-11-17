@@ -18,10 +18,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { CalendarIcon } from "lucide-react";
 import { Paciente } from "@/tipos/paciente";
-import { useAgendamento, useInformarDesfecho } from "@/hooks/usePacientes";
+import { useAgendamento, useInformarDesfecho, useExames } from "@/hooks/usePacientes";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { BlocoCopiarTexto } from "@/componentes/BlocoCopiarTexto";
 
 const esquemaDesfecho = z.object({
   desfecho: z.enum(["finalizado", "novo-retorno", "novos-exames", "faltou"]),
@@ -51,6 +52,7 @@ const examesDisponiveis = [
 
 export function ModalInformarDesfecho({ aberto, aoFechar, paciente }: ModalInformarDesfechoProps) {
   const { data: agendamento } = useAgendamento(paciente?._id || null);
+  const { data: examesDoPaciente = [] } = useExames(paciente?._id || null);
   const mutacao = useInformarDesfecho();
   
   const [desfechoSelecionado, setDesfechoSelecionado] = useState<string>("finalizado");
@@ -58,6 +60,8 @@ export function ModalInformarDesfecho({ aberto, aoFechar, paciente }: ModalInfor
   const [examesSelecionados, setExamesSelecionados] = useState<string[]>([]);
   const [outrosExames, setOutrosExames] = useState("");
   const [reagendar, setReagendar] = useState(false);
+  const [mostrarTextoProntuario, setMostrarTextoProntuario] = useState(false);
+  const [textoProntuario, setTextoProntuario] = useState("");
 
   const handleSubmit = () => {
     if (!paciente) return;
@@ -81,16 +85,57 @@ export function ModalInformarDesfecho({ aberto, aoFechar, paciente }: ModalInfor
       { pacienteId: paciente._id, dados },
       {
         onSuccess: () => {
-          aoFechar();
-          // Resetar form
-          setDesfechoSelecionado("finalizado");
-          setDataRetorno(undefined);
-          setExamesSelecionados([]);
-          setOutrosExames("");
-          setReagendar(false);
+          // Verificar se deve mostrar texto de prontuário
+          if (desfechoSelecionado === "finalizado") {
+            // Buscar lista de exames do paciente
+            const nomesExames = examesDoPaciente
+              .map((exame: any) => exame.nomeExame)
+              .join(", ");
+
+            const texto = `# AMBULATÓRIO DE MONITORAMENTO AVC
+
+PACIENTE RETORNOU EM CONSULTA PARA CHECAR RESULTADO DE EXAMES (${nomesExames || "exames realizados"}).
+SOLICITADO RETORNO EM X MESES NO AMBULATÓRIO DE AVC - RETAGUARDA.
+ORIENTO SEGMENTO VIA UBS`;
+
+            setTextoProntuario(texto);
+            setMostrarTextoProntuario(true);
+          } else if (desfechoSelecionado === "faltou" && reagendar) {
+            const texto = `# AMBULATÓRIO DE MONITORAMENTO AVC
+
+Paciente não retornou em consulta conforme agendado.
+Será realizada uma nova tentativa de agendamento.`;
+
+            setTextoProntuario(texto);
+            setMostrarTextoProntuario(true);
+          } else {
+            handleFecharCompleto();
+          }
         },
       }
     );
+  };
+
+  const handleFecharCompleto = () => {
+    setDesfechoSelecionado("finalizado");
+    setDataRetorno(undefined);
+    setExamesSelecionados([]);
+    setOutrosExames("");
+    setReagendar(false);
+    setMostrarTextoProntuario(false);
+    setTextoProntuario("");
+    aoFechar();
+  };
+
+  const handleConcluir = () => {
+    setMostrarTextoProntuario(false);
+    setTextoProntuario("");
+    setDesfechoSelecionado("finalizado");
+    setDataRetorno(undefined);
+    setExamesSelecionados([]);
+    setOutrosExames("");
+    setReagendar(false);
+    aoFechar();
   };
 
   const handleExameToggle = (exame: string) => {
@@ -100,6 +145,27 @@ export function ModalInformarDesfecho({ aberto, aoFechar, paciente }: ModalInfor
         : [...prev, exame]
     );
   };
+
+  // Se estiver mostrando texto de prontuário, renderizar apenas isso
+  if (mostrarTextoProntuario) {
+    return (
+      <Dialog open={aberto} onOpenChange={handleConcluir}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Texto para Prontuário</DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4">
+            <BlocoCopiarTexto texto={textoProntuario} />
+          </div>
+
+          <DialogFooter>
+            <Button onClick={handleConcluir}>Concluir</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={aberto} onOpenChange={aoFechar}>
@@ -194,7 +260,7 @@ export function ModalInformarDesfecho({ aberto, aoFechar, paciente }: ModalInfor
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={aoFechar}>
+          <Button variant="outline" onClick={handleFecharCompleto}>
             Cancelar
           </Button>
           <Button

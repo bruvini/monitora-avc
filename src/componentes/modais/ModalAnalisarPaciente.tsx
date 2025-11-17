@@ -19,6 +19,10 @@ import { useAnalisarPaciente } from "@/hooks/usePacientes";
 import { aplicarMascaraTelefone, removerMascaraTelefone } from "@/utilidades/formatadores";
 import { Paciente } from "@/tipos/paciente";
 import { toast } from "sonner";
+import { BlocoCopiarTexto } from "@/componentes/BlocoCopiarTexto";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { api } from "@/servicos/api";
 
 const esquemaAnalise = z.object({
   cumpreCriterios: z.enum(["sim", "nao"], { required_error: "Selecione se cumpre critérios" }),
@@ -78,6 +82,8 @@ export function ModalAnalisarPaciente({
   paciente,
 }: ModalAnalisarPacienteProps) {
   const { mutate: analisarPaciente, isPending } = useAnalisarPaciente();
+  const [mostrarTextoProntuario, setMostrarTextoProntuario] = useState(false);
+  const [textoProntuario, setTextoProntuario] = useState("");
 
   const form = useForm<FormularioAnalise>({
     resolver: zodResolver(esquemaAnalise),
@@ -136,9 +142,46 @@ export function ModalAnalisarPaciente({
     analisarPaciente(
       { pacienteId: paciente._id as string, dados: payload },
       {
-        onSuccess: () => {
-          form.reset();
-          aoFechar();
+        onSuccess: async () => {
+          // Verificar se deve mostrar texto de prontuário
+          // Buscar os exames pendentes do paciente da subcoleção
+          if (dados.cumpreCriterios === "sim") {
+            try {
+              const exames = await api.buscarExames(paciente._id as string);
+              const examesPendentes = exames.filter((e: any) => !e.dataRealizacao);
+              
+              if (examesPendentes.length > 0) {
+                const listaExames = examesPendentes
+                  .map((exame: any) => `- ${exame.nomeExame}`)
+                  .join("\n");
+
+                // Usar data atual + 7 dias como exemplo (você pode ajustar conforme necessário)
+                const dataAlta = new Date();
+                dataAlta.setDate(dataAlta.getDate() + 7);
+
+                const texto = `# AMBULATÓRIO DE MONITORAMENTO AVC
+
+PACIENTE COM PREVISÃO DE ALTA NA DATA DE ${format(dataAlta, "dd/MM/yyyy", { locale: ptBR })}
+REALIZO VISITA A BEIRA LEITO, REPASSO ORIENTAÇÕES AO PACIENTE QUANTO AO RETORNO NO AMBULATÓRIO PARA CHECAR RESULTADO DOS SEGUINTES EXAMES:
+${listaExames}
+
+A DATA DO RETORNO SERÁ AGENDADA E REPASSADA VIA CONTATO TELEFÔNICO OU WHATSAPP.`;
+
+                setTextoProntuario(texto);
+                setMostrarTextoProntuario(true);
+              } else {
+                form.reset();
+                aoFechar();
+              }
+            } catch (error) {
+              console.error("Erro ao buscar exames:", error);
+              form.reset();
+              aoFechar();
+            }
+          } else {
+            form.reset();
+            aoFechar();
+          }
         },
         onError: (error: any) => {
           console.error("Erro ao analisar:", error);
@@ -150,7 +193,35 @@ export function ModalAnalisarPaciente({
     );
   };
 
+  const handleConcluir = () => {
+    setMostrarTextoProntuario(false);
+    setTextoProntuario("");
+    form.reset();
+    aoFechar();
+  };
+
   const nomePaciente = paciente?.name[0]?.text || "Paciente";
+
+  // Se estiver mostrando texto de prontuário, renderizar apenas isso
+  if (mostrarTextoProntuario) {
+    return (
+      <Dialog open={aberto} onOpenChange={handleConcluir}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Texto para Prontuário</DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4">
+            <BlocoCopiarTexto texto={textoProntuario} />
+          </div>
+
+          <DialogFooter>
+            <Button onClick={handleConcluir}>Concluir</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={aberto} onOpenChange={aoFechar}>
