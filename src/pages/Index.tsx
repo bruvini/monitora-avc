@@ -11,122 +11,34 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
 const Index = () => {
-  // Estados para filtros
   const [nomeFiltro, setNomeFiltro] = useState("");
   const [atendimentoFiltro, setAtendimentoFiltro] = useState("");
+  const [modalContatoAberto, setModalContatoAberto] = useState(false);
+  const [pacienteSelecionado, setPacienteSelecionado] = useState<Paciente | null>(null);
 
-  // Dados mockados para demonstração
-  const metricasMockadas: MetricasType = {
-    totalPacientes: 42,
-    percentualSemCriterios: 12.5,
-    quantidadeExamesRealizados: 28,
-    quantidadeConsultasConfirmadas: 15,
-    contagemContatosRealizados: 89,
-    taxaConclusao: 35.7,
-  };
+  const { data: pacientes = [], isLoading: carregandoPacientes } = usePacientes({
+    nome: nomeFiltro,
+    numeroAtendimento: atendimentoFiltro,
+  });
 
-  // Pacientes mockados para cada coluna
-  const pacientesMockados: Paciente[] = [
-    {
-      _id: "1",
-      resourceType: "Patient",
-      identifier: [{ system: "urn:hmsj:atendimento", value: "20240001" }],
-      name: [{ use: "official", text: "MARIA SILVA SANTOS" }],
-      gender: "female",
-      birthDate: "1965-03-15",
-      telecom: [
-        { sistema: "phone", valor: "(21) 98765-4321", uso: "mobile" }
-      ],
-      address: [{ city: "Rio de Janeiro" }],
-      _extension_Monitoramento: {
-        dataCadastroSistema: new Date("2024-01-10"),
-        statusMonitoramento: "aguarda_analise",
-        historicoStatus: [
-          { status: "aguarda_analise", timestamp: new Date("2024-01-10") }
-        ]
-      }
-    },
-    {
-      _id: "2",
-      resourceType: "Patient",
-      identifier: [{ system: "urn:hmsj:atendimento", value: "20240002" }],
-      name: [{ use: "official", text: "JOÃO PEREIRA OLIVEIRA" }],
-      gender: "male",
-      birthDate: "1958-07-22",
-      telecom: [
-        { sistema: "phone", valor: "(21) 97654-3210", uso: "mobile" }
-      ],
-      address: [{ city: "Rio de Janeiro" }],
-      _extension_Monitoramento: {
-        dataCadastroSistema: new Date("2024-01-08"),
-        statusMonitoramento: "aguarda_exames",
-        historicoStatus: [
-          { status: "aguarda_analise", timestamp: new Date("2024-01-08") },
-          { status: "aguarda_exames", timestamp: new Date("2024-01-09") }
-        ]
-      }
-    },
-    {
-      _id: "3",
-      resourceType: "Patient",
-      identifier: [{ system: "urn:hmsj:atendimento", value: "20240003" }],
-      name: [{ use: "official", text: "ANA COSTA FERREIRA" }],
-      gender: "female",
-      birthDate: "1972-11-30",
-      telecom: [
-        { sistema: "phone", valor: "(21) 96543-2109", uso: "mobile" }
-      ],
-      address: [{ city: "Rio de Janeiro" }],
-      _extension_Monitoramento: {
-        dataCadastroSistema: new Date("2024-01-05"),
-        statusMonitoramento: "aguarda_agendamento",
-        historicoStatus: [
-          { status: "aguarda_analise", timestamp: new Date("2024-01-05") },
-          { status: "aguarda_exames", timestamp: new Date("2024-01-06") },
-          { status: "aguarda_agendamento", timestamp: new Date("2024-01-12") }
-        ]
-      }
-    },
-    {
-      _id: "4",
-      resourceType: "Patient",
-      identifier: [{ system: "urn:hmsj:atendimento", value: "20240004" }],
-      name: [{ use: "official", text: "CARLOS MENDES RODRIGUES" }],
-      gender: "male",
-      birthDate: "1960-05-18",
-      telecom: [
-        { sistema: "phone", valor: "(21) 95432-1098", uso: "mobile" }
-      ],
-      address: [{ city: "Rio de Janeiro" }],
-      _extension_Monitoramento: {
-        dataCadastroSistema: new Date("2024-01-03"),
-        statusMonitoramento: "aguarda_desfecho",
-        historicoStatus: [
-          { status: "aguarda_analise", timestamp: new Date("2024-01-03") },
-          { status: "aguarda_exames", timestamp: new Date("2024-01-04") },
-          { status: "aguarda_agendamento", timestamp: new Date("2024-01-10") },
-          { status: "aguarda_desfecho", timestamp: new Date("2024-01-14") }
-        ]
-      }
-    }
-  ];
+  const { data: metricas, isLoading: carregandoMetricas } = useMetricas();
 
   const colunas = [
     {
       status: "aguarda_analise" as const,
-      pacientes: pacientesMockados.filter(p => p._extension_Monitoramento.statusMonitoramento === "aguarda_analise")
+      pacientes: pacientes.filter((p: Paciente) => p._extension_Monitoramento.statusMonitoramento === "aguarda_analise")
     },
     {
       status: "aguarda_exames" as const,
-      pacientes: pacientesMockados.filter(p => p._extension_Monitoramento.statusMonitoramento === "aguarda_exames")
+      pacientes: pacientes.filter((p: Paciente) => p._extension_Monitoramento.statusMonitoramento === "aguarda_exames")
     },
     {
       status: "aguarda_agendamento" as const,
-      pacientes: pacientesMockados.filter(p => p._extension_Monitoramento.statusMonitoramento === "aguarda_agendamento")
+      pacientes: pacientes.filter((p: Paciente) => p._extension_Monitoramento.statusMonitoramento === "aguarda_agendamento")
     },
     {
       status: "aguarda_desfecho" as const,
-      pacientes: pacientesMockados.filter(p => p._extension_Monitoramento.statusMonitoramento === "aguarda_desfecho")
+      pacientes: pacientes.filter((p: Paciente) => p._extension_Monitoramento.statusMonitoramento === "aguarda_desfecho")
     }
   ];
 
