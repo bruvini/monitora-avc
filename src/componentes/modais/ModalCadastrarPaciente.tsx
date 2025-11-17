@@ -31,10 +31,11 @@ const esquemaCadastro = z.object({
   examesLaboratoriais: z.string().optional(),
   outrosExames: z.string().optional(),
 }).refine((data) => {
-  // Validar que "Outros" exames contém vírgula se houver múltiplos
+  // Validar que "Outros" exames contém vírgula se houver múltiplos (com base em espaços)
   if (data.outrosExames && data.outrosExames.trim().length > 0) {
     const temEspaco = data.outrosExames.includes(' ');
     const temVirgula = data.outrosExames.includes(',');
+    // Se tem espaço mas não tem vírgula, provavelmente são múltiplos exames sem separação adequada
     if (temEspaco && !temVirgula) {
       return false;
     }
