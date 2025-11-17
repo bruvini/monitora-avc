@@ -20,23 +20,39 @@ export const api = {
   // Pacientes
   async buscarPacientes(filtros?: { nome?: string; numeroAtendimento?: string }) {
     try {
-      const constraints: QueryConstraint[] = [];
+      let snapshot;
       
-      // Adicionar filtros se fornecidos
-      if (filtros?.nome) {
-        constraints.push(where("name.0.text", ">=", filtros.nome.toUpperCase()));
-        constraints.push(where("name.0.text", "<=", filtros.nome.toUpperCase() + '\uf8ff'));
+      // Se tem filtros, aplicar no cliente após buscar todos
+      if (filtros?.nome || filtros?.numeroAtendimento) {
+        const allSnapshot = await getDocs(collection(db, COLECAO_PACIENTES));
+        let pacientes = allSnapshot.docs.map(docSnap => {
+          const data = converterTimestamps(docSnap.data());
+          return {
+            _id: docSnap.id,
+            ...data
+          };
+        }) as Paciente[];
+        
+        // Filtrar nome (busca por prefixo, normalizado)
+        if (filtros?.nome) {
+          const nomeNormalizado = filtros.nome.toUpperCase();
+          pacientes = pacientes.filter(p => 
+            p.name[0]?.text?.toUpperCase().startsWith(nomeNormalizado)
+          );
+        }
+        
+        // Filtrar número de atendimento
+        if (filtros?.numeroAtendimento) {
+          pacientes = pacientes.filter(p => 
+            p.identifier?.[0]?.value === filtros.numeroAtendimento
+          );
+        }
+        
+        return pacientes;
       }
       
-      if (filtros?.numeroAtendimento) {
-        constraints.push(where("identifier.0.value", "==", filtros.numeroAtendimento));
-      }
-      
-      const q = constraints.length > 0 
-        ? query(collection(db, COLECAO_PACIENTES), ...constraints)
-        : collection(db, COLECAO_PACIENTES);
-      
-      const snapshot = await getDocs(q);
+      // Sem filtros, buscar todos
+      snapshot = await getDocs(collection(db, COLECAO_PACIENTES));
       
       const pacientes = snapshot.docs.map(docSnap => {
         const data = converterTimestamps(docSnap.data());
@@ -206,29 +222,34 @@ export const api = {
 
   async atualizarExames(pacienteId: string, exameId: string, dataRealizacao: Date) {
     try {
+      // Buscar dados do exame antes de atualizar
+      const todosExames = await this.buscarExames(pacienteId);
+      const exameData = todosExames.find((e: any) => e.id === exameId);
+      const nomeExame = exameData?.nomeExame || "Exame";
+      
       const exameRef = doc(db, COLECAO_PACIENTES, pacienteId, "exames", exameId);
       await updateDoc(exameRef, {
         status: "realizado",
         dataRealizacao: Timestamp.fromDate(dataRealizacao)
       });
       
+      // Registrar log para este exame específico
+      await registrarLog(
+        pacienteId, 
+        `Exame "${nomeExame}" checado.`, 
+        "exame"
+      );
+      
       // Verificar se todos os exames estão completos
-      const todosExames = await this.buscarExames(pacienteId);
-      const todosConcluidos = todosExames.every((e: any) => e.status === "realizado");
+      const todosExamesAtualizados = await this.buscarExames(pacienteId);
+      const todosConcluidos = todosExamesAtualizados.every((e: any) => e.status === "realizado");
       
       if (todosConcluidos) {
         const pacienteRef = doc(db, COLECAO_PACIENTES, pacienteId);
         await updateDoc(pacienteRef, {
           "_extension_Monitoramento.statusMonitoramento": "aguarda_agendamento"
         });
-        await registrarLog(pacienteId, "Todos os exames concluídos. Paciente movido para aguarda_agendamento.", "exame");
-      } else {
-        const exameData = todosExames.find((e: any) => e.id === exameId);
-        await registrarLog(
-          pacienteId, 
-          `Exame "${exameData.nomeExame}" checado em ${dataRealizacao.toLocaleDateString('pt-BR')}.`, 
-          "exame"
-        );
+        await registrarLog(pacienteId, "Todos os exames concluídos. Paciente movido para Aguarda Agendamento.", "exame");
       }
       
       return { success: true };
@@ -318,14 +339,11 @@ export const api = {
         });
         await registrarLog(pacienteId, "Consulta finalizada. Monitoramento concluído com sucesso.", "desfecho");
       } else if (dados.desfecho === "novo-retorno") {
-        // Criar novo agendamento
-        const agendamentosRef = collection(db, COLECAO_PACIENTES, pacienteId, "agendamentos");
-        await addDoc(agendamentosRef, {
-          dataConsulta: Timestamp.fromDate(dados.dataRetorno),
-          status: "proposed",
-          dataCriacao: Timestamp.now()
+        // Retornar para aguarda_agendamento
+        await updateDoc(pacienteRef, {
+          "_extension_Monitoramento.statusMonitoramento": "aguarda_agendamento"
         });
-        await registrarLog(pacienteId, `Novo retorno agendado para ${dados.dataRetorno.toLocaleDateString('pt-BR')}.`, "desfecho");
+        await registrarLog(pacienteId, "Consulta finalizada. Desfecho: Novo Retorno. Paciente retornou para Agendamento.", "desfecho");
       } else if (dados.desfecho === "novos-exames") {
         // Criar novos exames e mudar status
         if (dados.exames && dados.exames.length > 0) {
@@ -374,15 +392,15 @@ export const api = {
     try {
       const contatosRef = collection(db, COLECAO_PACIENTES, pacienteId, "contatos");
       await addDoc(contatosRef, {
-        meio: dados.meio,
+        meio: dados.meioContato,
         desfecho: dados.desfecho,
-        observacoes: dados.observacoes || "",
+        resumo: dados.resumo || "",
         dataContato: Timestamp.now()
       });
       
       await registrarLog(
         pacienteId, 
-        `Contato realizado. Meio: ${dados.meio}, Desfecho: ${dados.desfecho}.`, 
+        `Contato realizado. Meio: ${dados.meioContato}, Desfecho: ${dados.desfecho}.${dados.resumo ? ' Resumo: ' + dados.resumo : ''}`, 
         "contato"
       );
       
