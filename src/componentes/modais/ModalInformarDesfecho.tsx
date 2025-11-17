@@ -65,8 +65,7 @@ export function ModalInformarDesfecho({ aberto, aoFechar, paciente }: ModalInfor
     const dados: any = { desfecho: desfechoSelecionado };
     
     if (desfechoSelecionado === "novo-retorno") {
-      if (!dataRetorno) return;
-      dados.dataRetorno = dataRetorno;
+      // Não precisa de data, apenas retorna para aguarda_agendamento
     } else if (desfechoSelecionado === "novos-exames") {
       const todosExames = [...examesSelecionados];
       if (outrosExames) {
@@ -140,35 +139,6 @@ export function ModalInformarDesfecho({ aberto, aoFechar, paciente }: ModalInfor
             </RadioGroup>
           </div>
 
-          {desfechoSelecionado === "novo-retorno" && (
-            <div className="space-y-2">
-              <Label>Data do Retorno</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !dataRetorno && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dataRetorno ? format(dataRetorno, "dd/MM/yyyy", { locale: ptBR }) : "Selecionar data"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dataRetorno}
-                    onSelect={setDataRetorno}
-                    disabled={(date) => date < new Date()}
-                    initialFocus
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          )}
 
           {desfechoSelecionado === "novos-exames" && (
             <div className="space-y-3">
@@ -228,10 +198,10 @@ export function ModalInformarDesfecho({ aberto, aoFechar, paciente }: ModalInfor
             Cancelar
           </Button>
           <Button
+            variant="default"
             onClick={handleSubmit}
             disabled={
               mutacao.isPending ||
-              (desfechoSelecionado === "novo-retorno" && !dataRetorno) ||
               (desfechoSelecionado === "novos-exames" && examesSelecionados.length === 0 && !outrosExames)
             }
           >

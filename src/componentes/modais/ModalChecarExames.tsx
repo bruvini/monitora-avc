@@ -1,6 +1,4 @@
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,17 +7,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { Paciente } from "@/tipos/paciente";
 import { useExames, useAtualizarExames } from "@/hooks/usePacientes";
-import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 
 interface ModalChecarExamesProps {
   aberto: boolean;
@@ -87,8 +78,6 @@ interface ExameItemProps {
 }
 
 function ExameItem({ exame, onCheck, isLoading }: ExameItemProps) {
-  const [dataRealizacao, setDataRealizacao] = useState<Date | undefined>(undefined);
-
   if (exame.status === "realizado") {
     return (
       <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
@@ -110,43 +99,13 @@ function ExameItem({ exame, onCheck, isLoading }: ExameItemProps) {
         <p className="text-xs text-muted-foreground">Pendente</p>
       </div>
       
-      <div className="flex items-center gap-2">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className={cn(
-                "w-[140px] justify-start text-left font-normal",
-                !dataRealizacao && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {dataRealizacao ? format(dataRealizacao, "dd/MM/yyyy", { locale: ptBR }) : "Selecionar"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="end">
-            <Calendar
-              mode="single"
-              selected={dataRealizacao}
-              onSelect={setDataRealizacao}
-              disabled={(date) => date > new Date()}
-              initialFocus
-              className="pointer-events-auto"
-            />
-          </PopoverContent>
-        </Popover>
-        
-        <Button
-          size="sm"
-          onClick={() => dataRealizacao && onCheck(exame.id, dataRealizacao)}
-          disabled={!dataRealizacao || isLoading}
-        >
-          Checar
-        </Button>
-      </div>
+      <Button
+        size="sm"
+        onClick={() => onCheck(exame.id, new Date())}
+        disabled={isLoading}
+      >
+        Checar
+      </Button>
     </div>
   );
 }
-
-import { useState } from "react";
