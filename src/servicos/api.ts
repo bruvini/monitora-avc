@@ -8,7 +8,9 @@ import {
   where,
   Timestamp,
   QueryConstraint,
-  deleteDoc 
+  deleteDoc,
+  getDoc,
+  setDoc
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Paciente, StatusMonitoramento } from "@/tipos/paciente";
@@ -48,7 +50,22 @@ export const api = {
           );
         }
         
-        return pacientes;
+        // Buscar agendamentos para anexar aos pacientes
+        const agendamentosSnapshot = await getDocs(collection(db, "agendamentos"));
+        const agendamentosMap = new Map();
+        agendamentosSnapshot.docs.forEach(doc => {
+          const agendamento = converterTimestamps(doc.data());
+          agendamento.id = doc.id;
+          if (agendamento.pacienteId && (agendamento.status === 'proposed' || agendamento.status === 'booked')) {
+            agendamentosMap.set(agendamento.pacienteId, agendamento);
+          }
+        });
+
+        // Anexar agendamentos aos pacientes
+        return pacientes.map(paciente => ({
+          ...paciente,
+          agendamento: agendamentosMap.get(paciente._id)
+        }));
       }
       
       // Sem filtros, buscar todos
@@ -62,7 +79,22 @@ export const api = {
         };
       }) as Paciente[];
       
-      return pacientes;
+      // Buscar agendamentos para anexar aos pacientes
+      const agendamentosSnapshot = await getDocs(collection(db, "agendamentos"));
+      const agendamentosMap = new Map();
+      agendamentosSnapshot.docs.forEach(doc => {
+        const agendamento = converterTimestamps(doc.data());
+        agendamento.id = doc.id;
+        if (agendamento.pacienteId && (agendamento.status === 'proposed' || agendamento.status === 'booked')) {
+          agendamentosMap.set(agendamento.pacienteId, agendamento);
+        }
+      });
+
+      // Anexar agendamentos aos pacientes
+      return pacientes.map(paciente => ({
+        ...paciente,
+        agendamento: agendamentosMap.get(paciente._id)
+      }));
     } catch (error: any) {
       console.error("Erro ao buscar pacientes:", error);
       throw new Error(error.message || "Erro ao buscar pacientes");
@@ -130,6 +162,18 @@ export const api = {
   // Métricas
   async buscarMetricas() {
     try {
+      // Buscar documento de métricas centralizadas
+      const metricasRef = doc(db, "metricas", "geral");
+      const metricasSnap = await getDoc(metricasRef);
+      
+      // Inicializar documento se não existir
+      if (!metricasSnap.exists()) {
+        await setDoc(metricasRef, { contagemContatosRealizados: 0 });
+      }
+      
+      const metricasCentralizadas = metricasSnap.data() || { contagemContatosRealizados: 0 };
+      
+      // Buscar todos os pacientes para calcular outras métricas
       const snapshot = await getDocs(collection(db, COLECAO_PACIENTES));
       const pacientes = snapshot.docs.map(docSnap => docSnap.data()) as Paciente[];
 
@@ -141,12 +185,25 @@ export const api = {
         p => p._extension_Monitoramento.statusMonitoramento === "monitoramento_finalizado"
       ).length;
 
+      // Contar exames completados (buscar em todas as subcoleções)
+      let examesCompletados = 0;
+      for (const docSnap of snapshot.docs) {
+        const examesRef = collection(db, COLECAO_PACIENTES, docSnap.id, "exames");
+        const examesSnapshot = await getDocs(examesRef);
+        examesCompletados += examesSnapshot.docs.filter(e => e.data().dataRealizacao).length;
+      }
+
+      // Contar consultas confirmadas
+      const consultasConfirmadas = pacientes.filter(
+        p => p._extension_Monitoramento.statusMonitoramento === "aguarda_desfecho"
+      ).length;
+
       return {
         totalPacientes,
         percentualSemCriterios: totalPacientes > 0 ? (semCriterios / totalPacientes) * 100 : 0,
-        quantidadeExamesRealizados: 0, // TODO: Implementar contagem de exames realizados
-        quantidadeConsultasConfirmadas: 0, // TODO: Implementar contagem de consultas
-        contagemContatosRealizados: 0, // TODO: Implementar contagem de contatos
+        quantidadeExamesRealizados: examesCompletados,
+        quantidadeConsultasConfirmadas: consultasConfirmadas,
+        contagemContatosRealizados: metricasCentralizadas.contagemContatosRealizados || 0,
         taxaConclusao: totalPacientes > 0 ? (finalizados / totalPacientes) * 100 : 0,
       };
     } catch (error: any) {
@@ -403,6 +460,21 @@ export const api = {
         `Contato realizado. Meio: ${dados.meioContato}, Desfecho: ${dados.desfecho}.${dados.resumo ? ' Resumo: ' + dados.resumo : ''}`, 
         "contato"
       );
+      
+      // Se desfecho foi sucesso, incrementar contador de métricas
+      if (dados.desfecho === "sucesso") {
+        const metricasRef = doc(db, "metricas", "geral");
+        const metricasSnap = await getDoc(metricasRef);
+        
+        if (metricasSnap.exists()) {
+          const currentCount = metricasSnap.data().contagemContatosRealizados || 0;
+          await updateDoc(metricasRef, {
+            contagemContatosRealizados: currentCount + 1
+          });
+        } else {
+          await setDoc(metricasRef, { contagemContatosRealizados: 1 });
+        }
+      }
       
       return { success: true };
     } catch (error: any) {
