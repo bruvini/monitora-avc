@@ -12,12 +12,14 @@ interface PainelKanbanProps {
   colunas: ColunaPacientes[];
   aoClicarContato: (paciente: Paciente) => void;
   aoClicarAcao: (paciente: Paciente) => void;
+  aoClicarNome?: (paciente: Paciente) => void;
 }
 
 export function PainelKanban({ 
   colunas, 
   aoClicarContato, 
-  aoClicarAcao 
+  aoClicarAcao,
+  aoClicarNome
 }: PainelKanbanProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -52,6 +54,7 @@ export function PainelKanban({
                     paciente={paciente}
                     aoClicarContato={() => aoClicarContato(paciente)}
                     aoClicarAcao={() => aoClicarAcao(paciente)}
+                    aoClicarNome={() => aoClicarNome?.(paciente)}
                   />
                 ))
               )}
