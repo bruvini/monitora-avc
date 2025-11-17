@@ -1,14 +1,14 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
-// TODO: Substituir pelos valores reais do seu projeto Firebase
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyBvgWppRYjPIP22U9-vu-J2dwrhJ2Klvpc",
+  authDomain: "pmj-hmsj.firebaseapp.com",
+  projectId: "pmj-hmsj",
+  storageBucket: "pmj-hmsj.firebasestorage.app",
+  messagingSenderId: "226296836721",
+  appId: "1:226296836721:web:3c8893c66567f2aee6e1d0",
+  measurementId: "G-BSWLK4FQ9V",
 };
 
 // Inicializar Firebase
