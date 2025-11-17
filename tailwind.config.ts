@@ -22,6 +22,7 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          hover: "hsl(var(--primary-hover))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -47,15 +48,19 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        sidebar: {
-          DEFAULT: "hsl(var(--sidebar-background))",
-          foreground: "hsl(var(--sidebar-foreground))",
-          primary: "hsl(var(--sidebar-primary))",
-          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
-          accent: "hsl(var(--sidebar-accent))",
-          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
-          border: "hsl(var(--sidebar-border))",
-          ring: "hsl(var(--sidebar-ring))",
+        status: {
+          "aguarda-analise": "hsl(var(--status-aguarda-analise))",
+          "aguarda-analise-fg": "hsl(var(--status-aguarda-analise-fg))",
+          "aguarda-exames": "hsl(var(--status-aguarda-exames))",
+          "aguarda-exames-fg": "hsl(var(--status-aguarda-exames-fg))",
+          "aguarda-agendamento": "hsl(var(--status-aguarda-agendamento))",
+          "aguarda-agendamento-fg": "hsl(var(--status-aguarda-agendamento-fg))",
+          "aguarda-desfecho": "hsl(var(--status-aguarda-desfecho))",
+          "aguarda-desfecho-fg": "hsl(var(--status-aguarda-desfecho-fg))",
+          "sem-criterio": "hsl(var(--status-sem-criterio))",
+          "sem-criterio-fg": "hsl(var(--status-sem-criterio-fg))",
+          "finalizado": "hsl(var(--status-finalizado))",
+          "finalizado-fg": "hsl(var(--status-finalizado-fg))",
         },
       },
       borderRadius: {
