@@ -4,7 +4,10 @@ import { Plus, FileText } from "lucide-react";
 import { Metricas } from "@/componentes/Metricas";
 import { Filtros } from "@/componentes/Filtros";
 import { PainelKanban } from "@/componentes/PainelKanban";
-import { Paciente, Metricas as MetricasType } from "@/tipos/paciente";
+import { ModalRegistrarContato } from "@/componentes/modais/ModalRegistrarContato";
+import { Paciente } from "@/tipos/paciente";
+import { usePacientes, useMetricas } from "@/hooks/usePacientes";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
 const Index = () => {
@@ -142,13 +145,13 @@ const Index = () => {
   };
 
   const handleContato = (paciente: Paciente) => {
-    toast.info(`Modal de contato: ${paciente.name[0].text}`);
+    setPacienteSelecionado(paciente);
+    setModalContatoAberto(true);
   };
 
   const handleAcao = (paciente: Paciente) => {
-    const nome = paciente.name[0].text;
     const status = paciente._extension_Monitoramento.statusMonitoramento;
-    toast.info(`Ação para ${nome} (${status})`);
+    toast.info(`Modal de ${status} será implementado em breve`);
   };
 
   return (
@@ -193,7 +196,15 @@ const Index = () => {
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Métricas */}
         <section aria-label="Métricas do sistema">
-          <Metricas metricas={metricasMockadas} />
+          {carregandoMetricas ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <Skeleton key={i} className="h-32" />
+              ))}
+            </div>
+          ) : metricas ? (
+            <Metricas metricas={metricas} />
+          ) : null}
         </section>
 
         {/* Filtros */}
@@ -212,13 +223,27 @@ const Index = () => {
           <h2 className="text-xl font-semibold text-foreground mb-4">
             Painel de Acompanhamento
           </h2>
-          <PainelKanban
-            colunas={colunas}
-            aoClicarContato={handleContato}
-            aoClicarAcao={handleAcao}
-          />
+          {carregandoPacientes ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <Skeleton key={i} className="h-96" />
+              ))}
+            </div>
+          ) : (
+            <PainelKanban
+              colunas={colunas}
+              aoClicarContato={handleContato}
+              aoClicarAcao={handleAcao}
+            />
+          )}
         </section>
       </main>
+
+      <ModalRegistrarContato
+        aberto={modalContatoAberto}
+        aoFechar={() => setModalContatoAberto(false)}
+        paciente={pacienteSelecionado}
+      />
     </div>
   );
 };

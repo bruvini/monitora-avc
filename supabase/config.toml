@@ -1,1 +1,22 @@
 project_id = "lhnkvbbdbzpsjwtqfmvx"
+
+[functions.pacientes]
+verify_jwt = false
+
+[functions.metricas]
+verify_jwt = false
+
+[functions.analise]
+verify_jwt = false
+
+[functions.exames]
+verify_jwt = false
+
+[functions.agendamento]
+verify_jwt = false
+
+[functions.desfecho]
+verify_jwt = false
+
+[functions.contato]
+verify_jwt = false
