@@ -18,7 +18,10 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(dados),
     });
-    if (!response.ok) throw new Error('Erro ao criar paciente');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw { response: { data: errorData }, message: errorData.error || 'Erro ao criar paciente' };
+    }
     return response.json();
   },
 
