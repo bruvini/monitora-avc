@@ -6,6 +6,7 @@ import { Filtros } from "@/componentes/Filtros";
 import { PainelKanban } from "@/componentes/PainelKanban";
 import { ModalRegistrarContato } from "@/componentes/modais/ModalRegistrarContato";
 import { ModalCadastrarPaciente } from "@/componentes/modais/ModalCadastrarPaciente";
+import { ModalAnalisarPaciente } from "@/componentes/modais/ModalAnalisarPaciente";
 import { Paciente } from "@/tipos/paciente";
 import { usePacientes, useMetricas } from "@/hooks/usePacientes";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,6 +17,7 @@ const Index = () => {
   const [atendimentoFiltro, setAtendimentoFiltro] = useState("");
   const [modalContatoAberto, setModalContatoAberto] = useState(false);
   const [modalCadastroAberto, setModalCadastroAberto] = useState(false);
+  const [modalAnaliseAberto, setModalAnaliseAberto] = useState(false);
   const [pacienteSelecionado, setPacienteSelecionado] = useState<Paciente | null>(null);
 
   const { data: pacientes = [], isLoading: carregandoPacientes } = usePacientes({
@@ -65,7 +67,12 @@ const Index = () => {
 
   const handleAcao = (paciente: Paciente) => {
     const status = paciente._extension_Monitoramento.statusMonitoramento;
-    toast.info(`Modal de ${status} será implementado em breve`);
+    if (status === "aguarda_analise") {
+      setPacienteSelecionado(paciente);
+      setModalAnaliseAberto(true);
+    } else {
+      toast.info(`Modal de ${status} será implementado em breve`);
+    }
   };
 
   return (
@@ -162,6 +169,12 @@ const Index = () => {
       <ModalCadastrarPaciente
         aberto={modalCadastroAberto}
         aoFechar={() => setModalCadastroAberto(false)}
+      />
+
+      <ModalAnalisarPaciente
+        aberto={modalAnaliseAberto}
+        aoFechar={() => setModalAnaliseAberto(false)}
+        paciente={pacienteSelecionado}
       />
     </div>
   );

@@ -16,26 +16,33 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCriarPaciente } from "@/hooks/usePacientes";
-import { aplicarMascaraTelefone } from "@/utilidades/formatadores";
+import { toast } from "sonner";
 
 const esquemaCadastro = z.object({
   nome: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
   dataNascimento: z.string().min(1, "Data de nascimento é obrigatória"),
   genero: z.enum(["female", "male"], { required_error: "Selecione o sexo" }),
-  numeroAtendimento: z.string().min(1, "Número de atendimento é obrigatório"),
-  cidade: z.string().optional(),
-  telefonePrincipal: z.string().min(14, "Telefone inválido"),
-  telefoneAdicional1: z.string().optional(),
-  telefoneAdicional2: z.string().optional(),
   statusInternacao: z.enum(["internado", "liberado"]),
   setor: z.string().optional(),
   leito: z.string().optional(),
   dataPrevistaAlta: z.string().optional(),
-  dataInternacao: z.string().optional(),
   dataAlta: z.string().optional(),
   exames: z.array(z.string()).min(1, "Selecione pelo menos um exame"),
   examesLaboratoriais: z.string().optional(),
   outrosExames: z.string().optional(),
+}).refine((data) => {
+  // Validar que "Outros" exames contém vírgula se houver múltiplos
+  if (data.outrosExames && data.outrosExames.trim().length > 0) {
+    const temEspaco = data.outrosExames.includes(' ');
+    const temVirgula = data.outrosExames.includes(',');
+    if (temEspaco && !temVirgula) {
+      return false;
+    }
+  }
+  return true;
+}, {
+  message: "Separe múltiplos exames com vírgula (ex: USG, Quimio)",
+  path: ["outrosExames"],
 });
 
 type FormularioCadastro = z.infer<typeof esquemaCadastro>;
@@ -75,11 +82,6 @@ export function ModalCadastrarPaciente({ aberto, aoFechar }: ModalCadastrarPacie
   const examesIncluemLabs = examesSelecionados.includes("LABS");
   const examesIncluemOutros = examesSelecionados.includes("OUTROS");
 
-  const handleTelefoneChange = (field: any, value: string) => {
-    const mascarado = aplicarMascaraTelefone(value);
-    field.onChange(mascarado);
-  };
-
   const handleExameToggle = (exame: string, checked: boolean) => {
     const novosExames = checked
       ? [...examesSelecionados, exame]
@@ -104,25 +106,11 @@ export function ModalCadastrarPaciente({ aberto, aoFechar }: ModalCadastrarPacie
       return [{ tipo: exame, detalhes: "" }];
     });
 
-    const telefones = [
-      { sistema: "phone", valor: dados.telefonePrincipal, uso: "mobile" },
-      ...(dados.telefoneAdicional1
-        ? [{ sistema: "phone", valor: dados.telefoneAdicional1, uso: "home" }]
-        : []),
-      ...(dados.telefoneAdicional2
-        ? [{ sistema: "phone", valor: dados.telefoneAdicional2, uso: "work" }]
-        : []),
-    ];
-
     const payload = {
       nome: dados.nome,
       dataNascimento: dados.dataNascimento,
       genero: dados.genero,
-      numeroAtendimento: dados.numeroAtendimento,
-      cidade: dados.cidade || "",
-      telefones,
       statusInternacao: dados.statusInternacao === "internado" ? "in-progress" : "finished",
-      dataInternacao: dados.dataInternacao || dados.dataAlta,
       dataAlta: dados.dataAlta,
       exames: examesProcessados,
     };
@@ -132,6 +120,11 @@ export function ModalCadastrarPaciente({ aberto, aoFechar }: ModalCadastrarPacie
         form.reset();
         setExamesSelecionados([]);
         aoFechar();
+      },
+      onError: (error: any) => {
+        console.error("Erro ao cadastrar:", error);
+        const mensagemErro = error?.response?.data?.error || error?.message || "Erro ao cadastrar paciente";
+        toast.error(mensagemErro);
       },
     });
   };
@@ -166,20 +159,6 @@ export function ModalCadastrarPaciente({ aberto, aoFechar }: ModalCadastrarPacie
                 </div>
 
                 <div>
-                  <Label htmlFor="numeroAtendimento">Nº Atendimento *</Label>
-                  <Input
-                    id="numeroAtendimento"
-                    {...form.register("numeroAtendimento")}
-                    placeholder="Ex: 20240001"
-                  />
-                  {form.formState.errors.numeroAtendimento && (
-                    <p className="text-sm text-destructive mt-1">
-                      {form.formState.errors.numeroAtendimento.message}
-                    </p>
-                  )}
-                </div>
-
-                <div>
                   <Label htmlFor="dataNascimento">Data de Nascimento *</Label>
                   <Input
                     id="dataNascimento"
@@ -209,71 +188,6 @@ export function ModalCadastrarPaciente({ aberto, aoFechar }: ModalCadastrarPacie
                       <Label htmlFor="masculino" className="font-normal">Masculino</Label>
                     </div>
                   </RadioGroup>
-                </div>
-
-                <div>
-                  <Label htmlFor="cidade">Cidade de Residência</Label>
-                  <Input id="cidade" {...form.register("cidade")} placeholder="Ex: Rio de Janeiro" />
-                </div>
-              </div>
-            </div>
-
-            {/* Telefones */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-foreground">Telefones de Contato</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="telefonePrincipal">Telefone Principal *</Label>
-                  <Input
-                    id="telefonePrincipal"
-                    {...form.register("telefonePrincipal")}
-                    onChange={(e) =>
-                      handleTelefoneChange(
-                        form.register("telefonePrincipal"),
-                        e.target.value
-                      )
-                    }
-                    placeholder="(21) 98765-4321"
-                    maxLength={15}
-                  />
-                  {form.formState.errors.telefonePrincipal && (
-                    <p className="text-sm text-destructive mt-1">
-                      {form.formState.errors.telefonePrincipal.message}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <Label htmlFor="telefoneAdicional1">Adicional 1</Label>
-                  <Input
-                    id="telefoneAdicional1"
-                    {...form.register("telefoneAdicional1")}
-                    onChange={(e) =>
-                      handleTelefoneChange(
-                        form.register("telefoneAdicional1"),
-                        e.target.value
-                      )
-                    }
-                    placeholder="(21) 98765-4321"
-                    maxLength={15}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="telefoneAdicional2">Adicional 2</Label>
-                  <Input
-                    id="telefoneAdicional2"
-                    {...form.register("telefoneAdicional2")}
-                    onChange={(e) =>
-                      handleTelefoneChange(
-                        form.register("telefoneAdicional2"),
-                        e.target.value
-                      )
-                    }
-                    placeholder="(21) 98765-4321"
-                    maxLength={15}
-                  />
                 </div>
               </div>
             </div>
@@ -317,15 +231,9 @@ export function ModalCadastrarPaciente({ aberto, aoFechar }: ModalCadastrarPacie
               )}
 
               {statusInternacao === "liberado" && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                  <div>
-                    <Label htmlFor="dataInternacao">Data de Internação</Label>
-                    <Input id="dataInternacao" type="date" {...form.register("dataInternacao")} />
-                  </div>
-                  <div>
-                    <Label htmlFor="dataAlta">Data da Alta *</Label>
-                    <Input id="dataAlta" type="date" {...form.register("dataAlta")} />
-                  </div>
+                <div className="mt-4">
+                  <Label htmlFor="dataAlta">Data da Alta *</Label>
+                  <Input id="dataAlta" type="date" {...form.register("dataAlta")} className="max-w-xs" />
                 </div>
               )}
             </div>
@@ -334,7 +242,8 @@ export function ModalCadastrarPaciente({ aberto, aoFechar }: ModalCadastrarPacie
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-foreground">Exames Pendentes *</h3>
               
-              <div className="space-y-3">
+              {/* Grid de 3 colunas para checkboxes */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {tiposExame.map((exame) => (
                   <div key={exame.value} className="flex items-center space-x-2">
                     <Checkbox
@@ -344,34 +253,43 @@ export function ModalCadastrarPaciente({ aberto, aoFechar }: ModalCadastrarPacie
                         handleExameToggle(exame.value, checked as boolean)
                       }
                     />
-                    <Label htmlFor={exame.value} className="font-normal cursor-pointer">
+                    <Label htmlFor={exame.value} className="font-normal cursor-pointer text-sm">
                       {exame.label}
                     </Label>
                   </div>
                 ))}
-
-                {examesIncluemLabs && (
-                  <div className="ml-6">
-                    <Label htmlFor="examesLaboratoriais">Quais exames laboratoriais?</Label>
-                    <Input
-                      id="examesLaboratoriais"
-                      {...form.register("examesLaboratoriais")}
-                      placeholder="Ex: Hemograma, Lipidograma"
-                    />
-                  </div>
-                )}
-
-                {examesIncluemOutros && (
-                  <div className="ml-6">
-                    <Label htmlFor="outrosExames">Especifique os outros exames (separados por vírgula)</Label>
-                    <Input
-                      id="outrosExames"
-                      {...form.register("outrosExames")}
-                      placeholder="Ex: USG, Tomografia"
-                    />
-                  </div>
-                )}
               </div>
+
+              {/* Inputs condicionais aparecem abaixo da grid */}
+              {examesIncluemLabs && (
+                <div>
+                  <Label htmlFor="examesLaboratoriais">Quais exames laboratoriais?</Label>
+                  <Input
+                    id="examesLaboratoriais"
+                    {...form.register("examesLaboratoriais")}
+                    placeholder="Ex: Hemograma, Lipidograma"
+                  />
+                </div>
+              )}
+
+              {examesIncluemOutros && (
+                <div>
+                  <Label htmlFor="outrosExames">Especifique os outros exames</Label>
+                  <Input
+                    id="outrosExames"
+                    {...form.register("outrosExames")}
+                    placeholder="Ex: USG, Quimioterapia"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Separe múltiplos exames por vírgula
+                  </p>
+                  {form.formState.errors.outrosExames && (
+                    <p className="text-sm text-destructive mt-1">
+                      {form.formState.errors.outrosExames.message}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {form.formState.errors.exames && (
                 <p className="text-sm text-destructive">
