@@ -15,7 +15,7 @@ import { useAgendamento, useGerenciarAgendamento } from "@/hooks/usePacientes";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
 interface ModalGerenciarConsultaProps {
@@ -24,13 +24,24 @@ interface ModalGerenciarConsultaProps {
   paciente: Paciente | null;
 }
 
+type ModoModal = 'acoes' | 'alterar' | 'cancelar';
+
 export function ModalGerenciarConsulta({ aberto, aoFechar, paciente }: ModalGerenciarConsultaProps) {
   const { data: agendamento, isLoading } = useAgendamento(paciente?._id || null);
   const mutacao = useGerenciarAgendamento();
   
+  const [modoAtual, setModoAtual] = useState<ModoModal>('acoes');
   const [dataConsulta, setDataConsulta] = useState<Date | undefined>(undefined);
+  const [motivoAlteracao, setMotivoAlteracao] = useState("");
   const [motivoCancelamento, setMotivoCancelamento] = useState("");
-  const [modoEdicao, setModoEdicao] = useState(false);
+
+  const handleFecharModal = () => {
+    aoFechar();
+    setModoAtual('acoes');
+    setDataConsulta(undefined);
+    setMotivoAlteracao("");
+    setMotivoCancelamento("");
+  };
 
   const handlePreAgendar = () => {
     if (!paciente || !dataConsulta) return;
@@ -41,10 +52,7 @@ export function ModalGerenciarConsulta({ aberto, aoFechar, paciente }: ModalGere
         dados: { acao: "pre-agendar", dataConsulta }
       },
       {
-        onSuccess: () => {
-          aoFechar();
-          setDataConsulta(undefined);
-        },
+        onSuccess: () => handleFecharModal(),
       }
     );
   };
@@ -62,7 +70,7 @@ export function ModalGerenciarConsulta({ aberto, aoFechar, paciente }: ModalGere
         }
       },
       {
-        onSuccess: () => aoFechar(),
+        onSuccess: () => handleFecharModal(),
       }
     );
   };
@@ -80,25 +88,21 @@ export function ModalGerenciarConsulta({ aberto, aoFechar, paciente }: ModalGere
         }
       },
       {
-        onSuccess: () => {
-          aoFechar();
-          setMotivoCancelamento("");
-        },
+        onSuccess: () => handleFecharModal(),
       }
     );
   };
 
   const handleAlterar = () => {
-    if (!paciente || !dataConsulta || !agendamento) return;
+    if (!paciente || !dataConsulta || !agendamento || !motivoAlteracao) return;
     
-    // Cancelar o agendamento atual e criar um novo
     mutacao.mutate(
       {
         pacienteId: paciente._id,
         dados: { 
           acao: "cancelar", 
           agendamentoId: agendamento.id,
-          motivo: "Alteração de data" 
+          motivo: `Alteração de data: ${motivoAlteracao}` 
         }
       },
       {
@@ -109,11 +113,7 @@ export function ModalGerenciarConsulta({ aberto, aoFechar, paciente }: ModalGere
               dados: { acao: "pre-agendar", dataConsulta }
             },
             {
-              onSuccess: () => {
-                aoFechar();
-                setDataConsulta(undefined);
-                setModoEdicao(false);
-              },
+              onSuccess: () => handleFecharModal(),
             }
           );
         },
@@ -123,8 +123,8 @@ export function ModalGerenciarConsulta({ aberto, aoFechar, paciente }: ModalGere
 
   if (isLoading) {
     return (
-      <Dialog open={aberto} onOpenChange={aoFechar}>
-        <DialogContent className="sm:max-w-[425px]">
+      <Dialog open={aberto} onOpenChange={handleFecharModal}>
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Gerenciar Consulta</DialogTitle>
           </DialogHeader>
@@ -137,8 +137,8 @@ export function ModalGerenciarConsulta({ aberto, aoFechar, paciente }: ModalGere
   const temAgendamento = agendamento && agendamento.status === "proposed";
 
   return (
-    <Dialog open={aberto} onOpenChange={aoFechar}>
-      <DialogContent className="sm:max-w-[425px]">
+    <Dialog open={aberto} onOpenChange={handleFecharModal}>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Gerenciar Consulta</DialogTitle>
         </DialogHeader>
@@ -174,7 +174,43 @@ export function ModalGerenciarConsulta({ aberto, aoFechar, paciente }: ModalGere
                 </Popover>
               </div>
             </>
-          ) : modoEdicao ? (
+          ) : modoAtual === 'acoes' ? (
+            <>
+              <div className="space-y-2">
+                <Label>Consulta pré-agendada para</Label>
+                <p className="text-lg font-medium">
+                  {format(new Date(agendamento.dataConsulta), "dd/MM/yyyy", { locale: ptBR })}
+                </p>
+              </div>
+              
+              <div className="flex flex-col gap-2 pt-2">
+                <Button
+                  variant="default"
+                  onClick={handleConfirmar}
+                  disabled={mutacao.isPending}
+                  className="w-full"
+                >
+                  Confirmar Consulta
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setModoAtual('alterar')}
+                  disabled={mutacao.isPending}
+                  className="w-full"
+                >
+                  Alterar Data
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => setModoAtual('cancelar')}
+                  disabled={mutacao.isPending}
+                  className="w-full"
+                >
+                  Cancelar Consulta
+                </Button>
+              </div>
+            </>
+          ) : modoAtual === 'alterar' ? (
             <>
               <div className="space-y-2">
                 <Label>Nova data da consulta</Label>
@@ -203,6 +239,17 @@ export function ModalGerenciarConsulta({ aberto, aoFechar, paciente }: ModalGere
                   </PopoverContent>
                 </Popover>
               </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="motivo-alteracao">Motivo da alteração *</Label>
+                <Textarea
+                  id="motivo-alteracao"
+                  placeholder="Ex: Indisponibilidade do paciente"
+                  value={motivoAlteracao}
+                  onChange={(e) => setMotivoAlteracao(e.target.value)}
+                  rows={3}
+                />
+              </div>
             </>
           ) : (
             <>
@@ -214,12 +261,13 @@ export function ModalGerenciarConsulta({ aberto, aoFechar, paciente }: ModalGere
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="motivo-cancelamento">Motivo do cancelamento (opcional)</Label>
-                <Input
+                <Label htmlFor="motivo-cancelamento">Motivo do cancelamento *</Label>
+                <Textarea
                   id="motivo-cancelamento"
-                  placeholder="Ex: Paciente indisponível"
+                  placeholder="Ex: Paciente faltou ou indisponível"
                   value={motivoCancelamento}
                   onChange={(e) => setMotivoCancelamento(e.target.value)}
+                  rows={3}
                 />
               </div>
             </>
@@ -229,7 +277,7 @@ export function ModalGerenciarConsulta({ aberto, aoFechar, paciente }: ModalGere
         <DialogFooter>
           {!temAgendamento ? (
             <>
-              <Button variant="outline" onClick={aoFechar}>
+              <Button variant="outline" onClick={handleFecharModal}>
                 Cancelar
               </Button>
               <Button
@@ -239,36 +287,33 @@ export function ModalGerenciarConsulta({ aberto, aoFechar, paciente }: ModalGere
                 {mutacao.isPending ? "Salvando..." : "Pré-agendar"}
               </Button>
             </>
-          ) : modoEdicao ? (
+          ) : modoAtual === 'acoes' ? (
+            <Button variant="outline" onClick={handleFecharModal}>
+              Fechar
+            </Button>
+          ) : modoAtual === 'alterar' ? (
             <>
-              <Button variant="outline" onClick={() => setModoEdicao(false)}>
+              <Button variant="outline" onClick={() => setModoAtual('acoes')}>
                 Voltar
               </Button>
               <Button
                 onClick={handleAlterar}
-                disabled={!dataConsulta || mutacao.isPending}
+                disabled={!dataConsulta || !motivoAlteracao || mutacao.isPending}
               >
                 {mutacao.isPending ? "Salvando..." : "Salvar Alteração"}
               </Button>
             </>
           ) : (
             <>
-              <Button 
-                variant="outline" 
-                onClick={() => setModoEdicao(true)}
-                disabled={mutacao.isPending}
-              >
-                Alterar Data
+              <Button variant="outline" onClick={() => setModoAtual('acoes')}>
+                Voltar
               </Button>
               <Button
                 variant="destructive"
                 onClick={handleCancelar}
-                disabled={mutacao.isPending}
+                disabled={!motivoCancelamento || mutacao.isPending}
               >
-                {mutacao.isPending ? "Cancelando..." : "Cancelar Consulta"}
-              </Button>
-              <Button onClick={handleConfirmar} disabled={mutacao.isPending}>
-                {mutacao.isPending ? "Confirmando..." : "Confirmar Consulta"}
+                {mutacao.isPending ? "Cancelando..." : "Confirmar Cancelamento"}
               </Button>
             </>
           )}

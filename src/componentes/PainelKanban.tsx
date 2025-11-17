@@ -6,6 +6,7 @@ import { obterTextoStatus, obterCorStatus } from "@/utilidades/obterTextoStatus"
 interface ColunaPacientes {
   status: StatusMonitoramento;
   pacientes: Paciente[];
+  countFuturos?: number;
 }
 
 interface PainelKanbanProps {
@@ -31,9 +32,16 @@ export function PainelKanban({
           {/* Header da Coluna */}
           <div className={`${obterCorStatus(coluna.status)} px-4 py-3`}>
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-sm">
-                {obterTextoStatus(coluna.status)}
-              </h3>
+              <div className="flex-1">
+                <h3 className="font-semibold text-sm">
+                  {obterTextoStatus(coluna.status)}
+                </h3>
+                {coluna.status === "aguarda_desfecho" && coluna.countFuturos && coluna.countFuturos > 0 && (
+                  <p className="text-xs font-normal text-white/80 mt-1">
+                    {coluna.countFuturos} {coluna.countFuturos === 1 ? 'paciente aguarda' : 'pacientes aguardam'} consulta futura.
+                  </p>
+                )}
+              </div>
               <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-white/20">
                 {coluna.pacientes.length}
               </span>

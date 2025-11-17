@@ -50,7 +50,8 @@ const Index = () => {
     },
     {
       status: "aguarda_desfecho" as const,
-      pacientes: pacientes.filter((p: Paciente) => p._extension_Monitoramento.statusMonitoramento === "aguarda_desfecho")
+      pacientes: pacientes.filter((p: Paciente) => p._extension_Monitoramento.statusMonitoramento === "aguarda_desfecho"),
+      countFuturos: 0 // TODO: Implementar lógica de filtragem por data de agendamento
     }
   ];
 

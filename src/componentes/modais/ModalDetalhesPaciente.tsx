@@ -97,7 +97,26 @@ export function ModalDetalhesPaciente({ aberto, aoFechar, paciente }: ModalDetal
                     </div>
                     <div className="col-span-2">
                       <Label className="text-muted-foreground">Telefones</Label>
-                      <p className="font-medium">{telefones}</p>
+                      <div className="space-y-1">
+                        {paciente.telecom && paciente.telecom.length > 0 ? (
+                          paciente.telecom.map((tel, idx) => {
+                            const numeroLimpo = tel.valor.replace(/\D/g, '');
+                            return (
+                              <a
+                                key={idx}
+                                href={`https://wa.me/55${numeroLimpo}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline font-medium block"
+                              >
+                                {tel.valor}
+                              </a>
+                            );
+                          })
+                        ) : (
+                          <p className="font-medium">Não informado</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </section>
