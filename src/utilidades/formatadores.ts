@@ -14,12 +14,18 @@ export function formatarData(data: Date | string): string {
 }
 
 /**
- * Formata um nome para maiúsculas (padrão FHIR)
+ * Remove acentos, caracteres especiais e converte para maiúsculas (padrão FHIR)
  * @param nome - Nome a ser formatado
- * @returns Nome em maiúsculas
+ * @returns Nome normalizado
  */
 export function formatarNomePaciente(nome: string): string {
-  return nome.toUpperCase().trim();
+  if (!nome) return "";
+  return nome
+    .normalize("NFD") // Separa acentos dos caracteres
+    .replace(/[\u0300-\u036f]/g, "") // Remove os acentos
+    .replace(/[^a-zA-Z0-9\s]/g, "") // Remove caracteres especiais (exceto espaço)
+    .toUpperCase()
+    .trim();
 }
 
 /**
