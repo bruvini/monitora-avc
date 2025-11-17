@@ -17,7 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCriarPaciente } from "@/hooks/usePacientes";
 import { toast } from "sonner";
-import { formatarNomePaciente } from "@/utilidades/formatadores";
+import { formatarNomePaciente, processarExamesOutros } from "@/utilidades/formatadores";
 
 const esquemaCadastro = z.object({
   nome: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
@@ -80,18 +80,22 @@ export function ModalCadastrarPaciente({ aberto, aoFechar }: ModalCadastrarPacie
   };
 
   const onSubmit = (dados: FormularioCadastro) => {
-    // Processar "Outros" exames (split por vírgula)
-    const examesProcessados = dados.exames.flatMap((exame) => {
+    // Processar exames selecionados em array de strings
+    const examesProcessados: string[] = [];
+    
+    dados.exames.forEach((exame) => {
       if (exame === "OUTROS" && dados.outrosExames) {
-        return dados.outrosExames.split(",").map((e) => ({
-          tipo: "OUTROS",
-          detalhes: e.trim(),
-        }));
+        // Processar exames "Outros" separados por vírgula
+        const outrosExamesArray = processarExamesOutros(dados.outrosExames);
+        examesProcessados.push(...outrosExamesArray);
+      } else if (exame === "LABS" && dados.examesLaboratoriais) {
+        // Processar exames laboratoriais separados por vírgula
+        const labsArray = processarExamesOutros(dados.examesLaboratoriais);
+        examesProcessados.push(...labsArray);
+      } else {
+        // Exame padrão
+        examesProcessados.push(exame);
       }
-      if (exame === "LABS" && dados.examesLaboratoriais) {
-        return [{ tipo: "LABS", detalhes: dados.examesLaboratoriais }];
-      }
-      return [{ tipo: exame, detalhes: "" }];
     });
 
     const payload = {
